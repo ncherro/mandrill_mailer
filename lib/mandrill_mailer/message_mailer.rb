@@ -48,7 +48,7 @@
 #         'example@domain.com`
 #       2)
 #         { email: 'someone@email.com', name: 'Bob Bertly' }
-#       3) 
+#       3)
 #         [{ email: 'someone@email.com', name: 'Bob Bertly' },
 #          { email: 'other@email.com', name: 'Claire Nayo' }]
 #
@@ -110,7 +110,7 @@ module MandrillMailer
       check_required_options(message)
       mandrill.messages.send(message, async, ip_pool, send_at)
     end
-    
+
     # Public: Build the hash needed to send to the mandrill api
     #
     # args - The Hash options used to refine the selection:
@@ -152,8 +152,8 @@ module MandrillMailer
 
       # Construct message hash
       self.message = {
-        "text" => args[:text], 
-        "html" => args[:html], 
+        "text" => args[:text],
+        "html" => args[:html],
         "view_content_link" => args[:view_content_link],
         "subject" => args[:subject],
         "from_email" => args[:from] || self.class.defaults[:from],
@@ -178,12 +178,16 @@ module MandrillMailer
         "attachments" => mandrill_attachment_args(args[:attachments]),
         "images" => mandrill_images_args(args[:images])
       }
-      
+
       unless MandrillMailer.config.interceptor_params.nil?
         unless MandrillMailer.config.interceptor_params.is_a?(Hash)
           raise InvalidInterceptorParams.new "The interceptor_params config must be a Hash"
         end
-        self.message.merge!(MandrillMailer.config.interceptor_params.stringify_keys)
+        interceptor_params = MandrillMailer.config.interceptor_params.stringify_keys
+        if interceptor_params['to'].present?
+          interceptor_params.merge!({ 'to' => format_to_params(args[:to]) })
+        end
+        self.message.merge!(interceptor_params)
       end
 
       # return self so we can chain deliver after the method call, like a normal mailer.
@@ -201,7 +205,7 @@ module MandrillMailer
       }
     end
 
-   
+
     def check_required_options(options)
       names = ['text', 'html', 'from', 'subject', 'to']
       names.each do |name|
